@@ -49,7 +49,12 @@ type Server interface {
 }
 
 ###Building###
-To build the project you need to install the zmq4 golang binding.
+1. To build the project you need to install the zmq4 golang binding. Binding are present at https://github.com/pebbe/zmq4
+2. Get the cluster package from git hub
+	go get github.com/abhishekg16/cluster
+3. Then enter in cluster directory and run test
+	go test
+
 
 
 

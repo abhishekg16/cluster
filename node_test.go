@@ -4,7 +4,7 @@ import "testing"
 
 //import "log"
 import "time"
-import "fmt"
+//import "fmt"
 
 const (
 	NOFSERVER  = 4
@@ -133,7 +133,7 @@ func TestClusterTS3(t *testing.T)  {
 }
 */
 
-/*
+
 func TestClusterTS4(t *testing.T)  {
 	s,_ := makeDummyServer(1)
 	env := Envelope{1, 0, "RoundRobin"}
@@ -152,10 +152,10 @@ func TestClusterTS4(t *testing.T)  {
 	}
 }
 
-*/
+
 // The purpose of this test case to check the limits of the buffer.
 // This testCase craete 2 server instances and send the message at maximum processor capability
-
+/*
 func TestClusterTS5(t *testing.T) {
 	s, err := makeDummyServer(NOFSERVER)
 	if err != nil {
@@ -192,3 +192,4 @@ func TestClusterTS5(t *testing.T) {
 	}
 
 }
+*/
