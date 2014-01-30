@@ -25,11 +25,9 @@ Config.json the configuration file which contains the detail all other peers in 
 ####API####
 New method take the pid of a new server and path to the Config.json file. It allocates a new server and return it after initailization. User can use this method to create an server instance by which he can access the clsuster
 
-{
 
-New(pid int, path string) (server, error) 
+func New(pid int, path string) (server, error) 
 
-}
 
 #####Messages#####
 The communication unit is an Envelope which contains the pid of destination, Globally unique messageId and Message. User can create a new message using this
