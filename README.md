@@ -33,18 +33,26 @@ The communication unit is an Envelope which contains the pid of destination, Glo
     
 
 type Envelope struct {
+
 	Pid int // Peer id of destination
+
         MsgId int64 // Globally unique messageId
+
         Msg interface{} // Actual message 
+
 }
 
 
 #####Server Interface#####
 Server instance Exposes the some method which allows user to communicate with cluster. 
+
 type Server interface {
         Pid() int	// Id of this server
+	
         Peers() []int   // Returns the List of Peers
+	
         Outbox() chan *Envelope // the channel to send the message to othe peers
+	
         Inbox() chan *Envelopw // the channel to receive messages from other peers.
 }
 
