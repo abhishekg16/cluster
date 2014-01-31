@@ -1,7 +1,7 @@
 #CLUSTER#
 Cluster provides an interface and associated library by which user can communicate with a group of node. By using cluster API the client of the cluster can send message to any other node in cluster and can receive the message send by them. The cluster uses the asynchronous message passing mechanism for communication. 
 
-####Features#### 
+####Features 
 1. Allows BroadCasting and Peer to Peer Communication
 3. Uses the ZeroMQ as underlying communication library.
 4. Tested for different kind of scenarios
