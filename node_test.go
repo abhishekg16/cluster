@@ -139,7 +139,7 @@ func TestClusterTS4(t *testing.T)  {
 	env := Envelope{1, 0, "RoundRobin"}
 	sendMessageTo(&s[0],1,&env)
 
-	time.Sleep(20*time.Second)
+	time.Sleep(5*time.Second)
 	s1, err := New(1,"Config.json")
 	if err != nil {
 		t.Errorf("Can not craete a new server")

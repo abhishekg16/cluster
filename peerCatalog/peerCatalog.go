@@ -34,7 +34,7 @@ type PeerCatalog struct {
 func AllocateNewCatalog() *PeerCatalog {
 	t_mapOfPeers := make(map[int]peer)
 	catalog := PeerCatalog{mapOfPeers: t_mapOfPeers}
-	log.Println("Allocated new peer catalog for server")
+	//log.Println("Allocated new peer catalog for server")
 	return &catalog
 }
 
@@ -43,7 +43,7 @@ func (p *PeerCatalog) SetPeers(allPeers *map[int]string) {
 		newPeer := peer{tpid, taddr, nil}
 		p.mapOfPeers[tpid] = newPeer
 	}
-	log.Println("All peers are set in peer catalog")
+	//log.Println("All peers are set in peer catalog")
 }
 
 func (p *PeerCatalog) GetNOfPeers() int {
@@ -103,7 +103,7 @@ func (p *PeerCatalog) Connect(pid int) bool {
 	}
 	peer.soc = socket
 	p.mapOfPeers[pid] = *peer
-	log.Printf("Connecting server to %d : %q", pid, addr)
+	//log.Printf("Connecting server to %d : %q", pid, addr)
 	return true
 }
 
@@ -125,7 +125,7 @@ func (p *PeerCatalog) Bind(pid int) *zmq.Socket {
 	peer.soc = socket
 	//Fix this later
 	p.mapOfPeers[pid] = *peer
-	log.Printf("Binding Server %d To Listen on %q", pid, addr)
+	//log.Printf("Binding Server %d To Listen on %q", pid, addr)
 	return socket
 }
 

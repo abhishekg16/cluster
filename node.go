@@ -72,7 +72,7 @@ func (s *server) Peers() []int {
 
 // This method parse the json file returns a map from peer id to socket address
 func parse(ownId int, path string) (map[int]string, error) {
-	log.Println("Parsing The Configuration File")
+	//log.Println("Parsing The Configuration File")
 	addr := make(map[int]string)
 	file, err := os.Open(path)
 	if err != nil {
@@ -83,7 +83,7 @@ func parse(ownId int, path string) (map[int]string, error) {
 	for {
 		var v map[string]string
 		if err := dec.Decode(&v); err == io.EOF || len(v) == 0 {
-			log.Println("Parsing Done !!!")
+			//log.Println("Parsing Done !!!")
 			file.Close()
 			return addr, nil
 		} else if err != nil {
@@ -117,20 +117,20 @@ func (s *server) GetPeerAddress(pid int) (string, bool) {
 
 // connectToallPeers method setup the connection with all other peers
 func (s *server) connectToAllPeers() {
-	log.Println("Start Connecting to all Peers")
+	//log.Println("Start Connecting to all Peers")
 	listOfPeers := s.Peers()
 	for _, pid := range listOfPeers {
 		if pid != s.pid {
 			_ = s.pCatalog.Connect(pid)
 		}
 	}
-	log.Println("Successfully Connected to peers: Connection depends on availability of peer")
+	//log.Println("Successfully Connected to peers: Connection depends on availability of peer")
 }
 
 // This method iniitlaizes the server and stablish the connection with other instances.
 func (s *server) initialize() error {
 
-	log.Println("Initializing Server")
+	//log.Println("Initializing Server")
 	s.msgId = 0
 
 	// allocate all channels
@@ -187,7 +187,7 @@ func (s *server) startServerInBox() {
 	for {
 
 		env, err := s.in_socket.RecvBytes(0)
-		log.Println("Recieved on InSocket on Peer ", s.pid)
+		//log.Println("Recieved on InSocket on Peer ", s.pid)
 		if err != nil {
 			log.Println("Error in Reieving Bytes on the Insocket")
 			log.Println(err)
@@ -196,7 +196,7 @@ func (s *server) startServerInBox() {
 		if err == nil {
 			var msg Envelope
 			err := json.Unmarshal(env, &msg)
-			log.Println("Unmarshaling....")
+			//log.Println("Unmarshaling....")
 			if err != nil {
 				log.Println("error:", err)
 				continue
@@ -234,12 +234,12 @@ func (s *server) ReplyMessage(env Envelope) {
 
 // At present the sending sevice only support the point to point and broadcast services
 func (s *server) SendMessage(env *Envelope) {
-	log.Println("Sending Message")
+	//log.Println("Sending Message")
 	length := len(s.Peers())
 	dest := make([]int, length)
-	log.Println(*env)
+	//log.Println(*env)
 	if env.Pid == -1 {
-		log.Println("BroadCasting...")
+		//log.Println("BroadCasting...")
 		dest = s.Peers()
 	} else {
 		dest = dest[0:1]
@@ -267,7 +267,7 @@ func (s *server) startClientInBox() {
 	for {
 		select {
 		case env := <-s.recieve:
-			log.Println("Forwading from server to client %q on peer %d", env, s.pid)
+			//log.Println("Forwading from server to client %q on peer %d", env, s.pid)
 			s.in <- env
 		case <-time.After(20 * time.Second):
 			return
@@ -281,7 +281,7 @@ func (s *server) startClientOutBox() {
 	for {
 		select {
 		case env := <-s.out:
-			log.Println("Recieved from client of peer %d to send to Peers %d ", s.pid, env.Pid)
+			//log.Println("Recieved from client of peer %d to send to Peers %d ", s.pid, env.Pid)
 			s.SendMessage(env)
 		case <-time.After(200 * time.Second):
 			return
