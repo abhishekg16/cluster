@@ -68,8 +68,9 @@ type Server interface {
 ####An Example Client
 In following code snippet the client1 sends 10 message from server with pid : 0 to the client which is connected to server1. These are main functions which take the id server id as the command line argument
 
-"$ go run client1.go -id 0"
-"$ go run client2.go -id 1"
+**"$ go run client1.go -id 0"**
+
+**"$ go run client2.go -id 1"**
 
 ###client 1
 func main() {
