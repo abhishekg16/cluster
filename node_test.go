@@ -2,31 +2,32 @@ package cluster
 
 import "testing"
 
-//import "log"
+import "log"
 import "time"
-//import "fmt"
+import "fmt"
 
 const (
 	NOFSERVER  = 4
 	NOFMESSAGE = 10
 )
 
-func makeDummyServer(num int) ([]server, error) {
-	s := make([]server, num)
+func makeDummyServer(num int) ([]*server, error) {
+	s := make([]*server, num)
 	var err error
 	for i := 0; i < num; i++ {
 		s[i], err = New(i, "Config.json")
 		if err != nil {
 			return nil, err
 		}
-
 	}
 	return s, nil
+
 }
 
 func sendMessage(s *server, delay int) {
 	for i := 0; i < NOFMESSAGE; i++ {
-		env := Envelope{BROADCAST, 0, "Hi"}
+		msg := Message{0,"Hi"}
+		env := Envelope{BROADCAST, 0, CTRL, nil , msg}
 		s.Outbox() <- &env
 		if delay == 1 {
 			time.Sleep(1 * time.Millisecond)
@@ -34,20 +35,23 @@ func sendMessage(s *server, delay int) {
 	}
 }
 
-/*
+
 func TestClusterMessageCount(t *testing.T) {
 	s, err := makeDummyServer(NOFSERVER)
 	if err != nil {
 		t.Errorf("Server Instantiation Failed %q", err)
 	}
-	go sendMessage(&s[0],1)
-	go sendMessage(&s[1],1)
-	go sendMessage(&s[2],1)
-	go sendMessage(&s[3],1)
+	go sendMessage(s[0],1)
+	go sendMessage(s[1],1)
+	go sendMessage(s[2],1)
+	go sendMessage(s[3],1)
 	count := make([]int, NOFSERVER)
 
+Loop :
 	for {
+		log.Println("Started Receive======================================================>")
 		select {
+			
 			case val := <-s[1].Inbox():
 				fmt.Println("case 1 ", val)
 				count[1] += 1
@@ -60,10 +64,14 @@ func TestClusterMessageCount(t *testing.T) {
 			case  val := <-s[3].Inbox():
 				fmt.Println("case 3 ", val)
 				count[3] += 1
-			case <- time.After(3* time.Second):
-				break
+			case <- time.After(2* time.Second):
+				break Loop
 		}
 	}
+	log.Println("The Test Time out called======================================================>")
+	for i := 0 ; i < NOFSERVER ; i++ {
+		s[i].Shutdown()
+	} 
 	fmt.Println("Reached")
 
 	if ( count[1] != NOFMESSAGE|| count[2] != NOFMESSAGE || count[3] != NOFMESSAGE  ) {
@@ -71,7 +79,7 @@ func TestClusterMessageCount(t *testing.T) {
 	}
 }
 
-*/
+
 func sendMessageTo(s *server, pid int, env *Envelope) {
 	s.Outbox() <- env
 }
@@ -134,9 +142,10 @@ func TestClusterTS3(t *testing.T)  {
 */
 
 
+/*
 func TestClusterTS4(t *testing.T)  {
 	s,_ := makeDummyServer(1)
-	env := Envelope{1, 0, "RoundRobin"}
+	env := Envelope{ 1,0, CTRL, nil ,Message{0,"RoundRobin"}}
 	sendMessageTo(&s[0],1,&env)
 
 	time.Sleep(5*time.Second)
@@ -145,14 +154,14 @@ func TestClusterTS4(t *testing.T)  {
 		t.Errorf("Can not craete a new server")
 	}
 
-	msg := waitForMessage(&s1)
+	msg := waitForMessage(s1)
 
 	if msg != nil {
 		t.Errorf("Message have arrive which is not expected. Is means message reached with delay at destination")
 	}
 }
 
-
+*/
 // The purpose of this test case to check the limits of the buffer.
 // This testCase craete 2 server instances and send the message at maximum processor capability
 /*

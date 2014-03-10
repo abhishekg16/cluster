@@ -1,10 +1,23 @@
 package cluster
 
+import "log"
 // Cluster Provide following Interface
 
 const (
 	BROADCAST = -1
+	MULTICAST = -2
+	CTRL = iota
+	MSG  = iota
+	SHUTDOWN = iota
 )
+
+type Message struct {
+	MsgCode int
+	Msg interface{}
+}
+
+
+
 
 type Envelope struct {
 	// On the sender side, Pid identifies the receiving peer. If instead, Pid is
@@ -15,14 +28,20 @@ type Envelope struct {
 	// An id that globally and uniquely identifies the message, meant for duplicate detection at
 	// higher levels. It is opaque to this package.
 	MsgId int64
+	
+	// Message Type Tells about the type of messge : Control or Normal
+	MsgType int
+
+	PeerList []int
 
 	// the actual message.
-	Msg interface{}
+	Msg Message
 }
 
 type Server interface {
 	// Id of this server
 	Pid() int
+	
 
 	// array of other servers' ids in the same cluster
 	Peers() []int
@@ -34,4 +53,8 @@ type Server interface {
 
 	// the channel to receive messages from other peers.
 	Inbox() chan *Envelope
+	
+	SetLogger(*log.Logger)
+	
+	Shutdown() bool
 }

@@ -20,10 +20,17 @@ const (
 	PROTOCOL = "tcp://"
 )
 
+// peer struct contains the details about each peer 
+// peer id , ctrl_addr : port where to sent the control message 
+// msg_addr : socket adress where to send the message  
+
 type peer struct {
 	pid  int
-	addr string
-	soc  *zmq.Socket
+	ctrlAddr string
+	msgAddr string
+	ctrlSoc  *zmq.Socket
+	msgSoc	*zmq.Socket
+	
 }
 
 // Thsi is a meta data store of all the peers
@@ -34,16 +41,22 @@ type PeerCatalog struct {
 func AllocateNewCatalog() *PeerCatalog {
 	t_mapOfPeers := make(map[int]peer)
 	catalog := PeerCatalog{mapOfPeers: t_mapOfPeers}
-	//log.Println("Allocated new peer catalog for server")
+	log.Println("Allocated new peer catalog for server")
 	return &catalog
 }
 
-func (p *PeerCatalog) SetPeers(allPeers *map[int]string) {
+
+// TODO: Add the return error
+func (p *PeerCatalog) SetPeers(allPeers *map[int]([]string)) {
 	for tpid, taddr := range *allPeers {
-		newPeer := peer{tpid, taddr, nil}
+		if len(taddr) != 2 {
+			log.Printf("The Peer : %q does not provide two socket address")
+			
+		}
+		newPeer := peer{tpid, taddr[0],taddr[1], nil,nil}
 		p.mapOfPeers[tpid] = newPeer
 	}
-	//log.Println("All peers are set in peer catalog")
+	log.Println("All peers are set in peer catalog")
 }
 
 func (p *PeerCatalog) GetNOfPeers() int {
@@ -56,14 +69,24 @@ func (p *PeerCatalog) isExist(pid int) bool {
 	return ok
 }
 
-func (p *PeerCatalog) GetAddr(pid int) (string, bool) {
+func (p *PeerCatalog) GetMsgAddr(pid int) (string, bool) {
 	peer, ok := p.mapOfPeers[pid]
 	if ok == false {
 		return "", ok
 	}
-	addr := peer.addr
+	addr := peer.msgAddr
 	return addr, true
 }
+
+func (p *PeerCatalog) GetCtrlAddr(pid int) (string, bool) {
+	peer, ok := p.mapOfPeers[pid]
+	if ok == false {
+		return "", ok
+	}
+	addr := peer.ctrlAddr
+	return addr, true
+}
+
 
 func (p *PeerCatalog) GetPeerList(pid int) []int {
 	peers := make([]int, 0)
@@ -87,47 +110,76 @@ func (p *PeerCatalog) Connect(pid int) bool {
 		log.Println("Pid does not exist")
 		return false
 	}
-	socket, _ := zmq.NewSocket(zmq.DEALER)
-	addr, ok := p.GetAddr(pid)
+	
+	// Connect to Msg Socket
+	socket, _ := zmq.NewSocket(zmq.PUSH)
+	addr, ok := p.GetMsgAddr(pid)
 	if ok == false {
 		return ok
 	}
 	err := socket.Connect(PROTOCOL + addr)
 	if err != nil {
-		log.Printf("Error : %q", err)
+		log.Printf("Error Generated : %q", err)
 		return false
 	}
 	peer, ok := p.getPeerData(pid)
 	if ok == false {
 		return false
 	}
-	peer.soc = socket
+	peer.msgSoc = socket
+	
+	// Connect to Control Socket
+	socket, _ = zmq.NewSocket(zmq.PUSH)
+	addr, ok = p.GetCtrlAddr(pid)
+	if ok == false {
+		return ok
+	}
+	err = socket.Connect(PROTOCOL + addr)
+	if err != nil {
+		log.Printf("Error : %q", err)
+		return false
+	}
+	peer.ctrlSoc = socket
+	
 	p.mapOfPeers[pid] = *peer
-	//log.Printf("Connecting server to %d : %q", pid, addr)
+	log.Printf("Connecting server to %d : %q", pid, addr)
+	// Connect to ctrl Socket 
 	return true
 }
 
 // This method will take the socket and
-func (p *PeerCatalog) Bind(pid int) *zmq.Socket {
+func (p *PeerCatalog) Bind(pid int) bool {
 	if !p.isExist(pid) {
-		return nil
+		return false
 	}
-	socket, _ := zmq.NewSocket(zmq.DEALER)
-	addr, ok := p.GetAddr(pid)
+	socket, _ := zmq.NewSocket(zmq.PULL)
+	addr, ok := p.GetMsgAddr(pid)
 	if ok == false {
-		return nil
+		return false
 	}
 	socket.Bind(PROTOCOL + addr)
 	peer, ok := p.getPeerData(pid)
 	if ok == false {
-		return nil
+		return false
 	}
-	peer.soc = socket
+	peer.msgSoc = socket
+	log.Printf("Binding Server %d To Listen on %q", pid, addr)
+	
+	socket, _ = zmq.NewSocket(zmq.PULL)
+	addr, ok = p.GetCtrlAddr(pid)
+	if ok == false {
+		return false
+	}
+	socket.Bind(PROTOCOL + addr)
+	peer.ctrlSoc = socket
+	
 	//Fix this later
 	p.mapOfPeers[pid] = *peer
-	//log.Printf("Binding Server %d To Listen on %q", pid, addr)
-	return socket
+	log.Printf("Binding Server %d To Listen on %q", pid, addr)
+	return true
 }
+
+
 
 func (p *PeerCatalog) getPeerData(pid int) (*peer, bool) {
 	peer, ok := p.mapOfPeers[pid]
@@ -147,7 +199,7 @@ func (p* PeerCatalog)setSocket( pid int, socket * Socket)
 	mapToPeers[pid].soc = socket;
 }
 */
-func (p *PeerCatalog) GetSocket(pid int) *zmq.Socket {
+func (p *PeerCatalog) GetMsgSocket(pid int) *zmq.Socket {
 	if !p.isExist(pid) {
 		return nil
 	}
@@ -155,8 +207,20 @@ func (p *PeerCatalog) GetSocket(pid int) *zmq.Socket {
 	if ok == false {
 		return nil
 	}
-	return peer.soc
+	return peer.msgSoc
 }
+
+func (p *PeerCatalog) GetCtrlSocket(pid int) *zmq.Socket {
+	if !p.isExist(pid) {
+		return nil
+	}
+	peer, ok := p.getPeerData(pid)
+	if ok == false {
+		return nil
+	}
+	return peer.ctrlSoc
+}
+ 
 
 /*
 func (P * PeerCatalog) addPeers( pid int, addr string ) {
