@@ -90,12 +90,12 @@ func (s* server) SetLogger(newlogger *log.Logger){
 	
 }
 // This method parse the json file returns a map from peer id to socket address
-func parse(ownId int, path string) (map[int]([]string), error) {
-	log.Println("Server %v :Parsing The Configuration File\n",ownId)
+func (s * server) parse(ownId int, path string) (map[int]([]string), error) {
+	//s.logger.Println("Server %v :Parsing The Configuration File\n",ownId)
 	addr := make(map[int]([]string))
 	file, err := os.Open(path)
 	if err != nil {
-		log.Printf("Server %v :Parsing Failed %v", ownId , err)
+		//s.logger.Printf("Server %v :Parsing Failed %v", ownId , err)
 		return nil, err
 	}
 	dec := json.NewDecoder(file)
@@ -103,7 +103,7 @@ func parse(ownId int, path string) (map[int]([]string), error) {
 	for {
 		var v map[string]string
 		if err := dec.Decode(&v); err == io.EOF || len(v) == 0 {
-			//log.Println("Parsing Done !!!")
+			//s.logger.Println("Parsing Done !!!")
 			file.Close()
 			return addr, nil
 		} else if err != nil {
@@ -146,22 +146,22 @@ func (s *server) GetPeerCtrlAddress(pid int) (string, bool) {
 
 // connectToallPeers method setup the connection with all other peers
 func (s *server) connectToAllPeers() {
-	log.Printf("Server %v :Start Connecting to all Peers",s.pid)
+	//s.logger.Printf("Server %v :Start Connecting to all Peers",s.pid)
 	listOfPeers := s.Peers()
 	for _, pid := range listOfPeers {
 		if pid != s.pid {
 			_ = s.pCatalog.Connect(pid)
 		}
 	}
-	log.Printf("Server %v :Successfully Connected to peers: Connection depends on availability of peer", s.pid)
+	//s.logger.Printf("Server %v :Successfully Connected to peers: Connection depends on availability of peer", s.pid)
 }
 
 func (s *server) Shutdown() bool {
-	log.Printf("Server %v : Shutdown is called at pid %q \n",s.pid)
+	//s.logger.Printf("Server %v : Shutdown is called at pid %q \n",s.pid)
 	s.isShutdown = true
 	s.closeClientInbox<-true
 	s.closeClientOutbox<-true
-	env := Envelope{Pid: s.pid, MsgType : CTRL, PeerList: nil , Msg : Message{}}
+	env := Envelope{Pid: s.pid, MsgType : SHUTDOWN, PeerList: nil , Msg : Message{}}
 	s.SendMessage(&env)
 	return true
 }
@@ -169,7 +169,7 @@ func (s *server) Shutdown() bool {
 // This method iniitlaizes the server and stablish the connection with other instances.
 func (s *server) initialize() error {
 
-	log.Printf("Server %v :Initializing Server\n",s.pid)
+	//s.logger.Printf("Server %v :Initializing Server\n",s.pid)
 	s.msgId = 0
 
 	// allocate all channels
@@ -184,7 +184,7 @@ func (s *server) initialize() error {
 	// start Binding
 	ok := s.pCatalog.Bind(s.pid)
 	if ok == false {
-		log.Printf("Server %v :Binding of Socket address Failed\n", s.pid)
+		s.logger.Printf("Server %v :Binding of Socket address Failed\n", s.pid)
 		return fmt.Errorf("Server %v :Binding Failed \n", s.pid)
 	}
 	
@@ -202,7 +202,7 @@ func (s *server) initialize() error {
 	}
 	*/
 	
-	log.Printf("Server %v :Initialization is Done\n",s.pid)
+	//s.logger.Printf("Server %v :Initialization is Done\n",s.pid)
 	return nil
 }
 
@@ -211,14 +211,22 @@ func (s *server) initialize() error {
 // New method take the pid of a new server and path to the Config.json file 
 // Config.json file contains the enrty of all other peers in the system
 // This method return a server object
+// logger is true if want you use the file logger 
+// else false (print on Stderr)
 
-func New(pid int, path string) (* server, error) {
+func New(pid int, path string, logger *log.Logger ) (* server, error) {
 	var s server
 	s.pid = pid
-
-	m, err := parse(pid, path)
+	
+	if logger == nil {
+		s.logger = log.New(os.Stderr, "Log: ", log.Ldate|log.Ltime|log.Lshortfile)
+	} else {
+		s.logger = logger
+	}
+	
+	m, err := s.parse(pid, path)
 	if err != nil {
-		log.Println(err)
+		s.logger.Println(err)
 		return &s, err
 	}
 
@@ -226,6 +234,7 @@ func New(pid int, path string) (* server, error) {
 	s.pCatalog = catalog.AllocateNewCatalog()
 	s.pCatalog.SetPeers(&m)
 
+	
 	err = (&s).initialize()
 
 	if err != nil {
@@ -252,53 +261,58 @@ func (s *server) startServerInBox() {
 			 sockets ,_ := poller.Poll(-1)
 		     for _ ,  socket := range sockets {
 	         	switch soc := socket.Socket; soc {
-	            	case s.in_ctrl_socket :
-	            		if s.isShutdown == true {
-	            			return
-	            		} 
+	            	case s.in_ctrl_socket : 
 		                env, err := s.in_ctrl_socket.RecvBytes(0)
-						log.Printf("Server %v: Recieved In Control Socket \n", s.pid)
+		//				s.logger.Printf("Server %v: Recieved In Control Socket \n", s.pid)
 						if err != nil {
-							log.Printf("Server %v: Error in Reieving Bytes on the InControl socket\n", s.pid)
-							log.Println(err)
+		//				s.logger.Printf("Server %v: Error in Reieving Bytes on the InControl socket\n", s.pid)
+			//				s.logger.Println(err)
 						}
-						//log.Printf("Server %v: Message Before Unmarshell\n",s.pid)
+						//s.logger.Printf("Server %v: Message Before Unmarshell\n",s.pid)
 						//os.Stdout.Write(env)
 						if err == nil {
-							log.Printf("Server %v: Unmarshaling....\n",s.pid)
+				//			s.logger.Printf("Server %v: Unmarshaling....\n",s.pid)
 							msg, err := s.S_encodingFacility.Decode(env)
 							if err != nil {
-								log.Printf("Server %v, error: %v\n", s.pid, err)
+					//			s.logger.Printf("Server %v, error: %v\n", s.pid, err)
 								continue
 							}
-							log.Printf("Server %v: Recieved Message : %+v \n", s.pid,msg)
+						//	s.logger.Printf("Server %v: Recieved Message : %+v \n", s.pid,msg)
 							if msg.MsgType == SHUTDOWN {
+							//	s.logger.Printf("Sever %v : OFF \n",s.pid)
 								return 
 							}
-							s.recieve <- msg
+							if s.isShutdown != true {
+	            				s.recieve <- msg	
+	            			}
 						}
 					case s.in_msg_socket :
-						if s.isShutdown == true {
-	            			return
-	            		} 
+						
 						env, err := s.in_msg_socket.RecvBytes(0)
-						log.Printf("Server %v :Recieved on In Message Socket on Peer %d \n", s.pid)
+						//s.logger.Printf("Server %v :Recieved on In Message Socket on Peer %d \n", s.pid)
 						if err != nil {
-							log.Printf("Server %v :Error in Reieving Bytes on the In Control socket\n")
-							log.Println(err)
+							s.logger.Printf("Server %v :Error in Reieving Bytes on the In Control socket\n")
+							s.logger.Println(err)
 						}
-						//log.Println("Message Before Unmarshell")
+						//s.logger.Println("Message Before Unmarshell")
 						//os.Stdout.Write(env)
 						if err == nil {
 							//var msg Envelope
 							//err := json.Unmarshal(env, &msg)
 							msg, err := s.S_encodingFacility.Decode(env)
-							log.Printf("Server %v Unmarshaling....\n",s.pid)
+							//s.logger.Printf("Server %v Unmarshaling....\n",s.pid)
 							if err != nil {
-								log.Println("error:", err)
+								s.logger.Println("error:", err)
 								continue
 							}
-							s.recieve <- msg
+							//TODO : ANY ways the message will not come
+							if msg.MsgType == SHUTDOWN {
+							//	s.logger.Printf("Sever %v : OFF \n",s.pid)
+								return 
+							}
+							if s.isShutdown != true {
+	            				s.recieve <- msg
+	            			} 
 						}
 				}	
 		}
@@ -314,7 +328,7 @@ func (s *server) startServerInBox() {
 
 /*
 func (s *server) ReplyMessage(env Envelope) {
-	log.Println("Sending Relply...")
+	s.logger.Println("Sending Relply...")
 	_, ok := s.GetPeerAddress(env.Pid)
 	if ok == false {
 		return
@@ -323,7 +337,7 @@ func (s *server) ReplyMessage(env Envelope) {
 	//env.Msg = "Ack"
 	msg, err := json.Marshal(env)
 	if err != nil {
-		log.Println(err)
+		s.logger.Println(err)
 		return
 	}
 	s.in_socket.SendBytes(msg, 0)
@@ -333,43 +347,45 @@ func (s *server) ReplyMessage(env Envelope) {
 // At present the sending sevice only support the point to point and broadcast services
 // Depending On the type of message the Message is send either on the control or message socket
 func (s *server) SendMessage(env *Envelope) {
-	//log.Printf("Server %v: Sending Message", s.pid)
+	//s.logger.Printf("Server %v: Sending Message", s.pid)
 	dest := make([]int, 0)
-	log.Println(*env)
+	s.logger.Println(*env)
+	
 	if env.Pid == -1 {
-		log.Printf("Server %v: BroadCasting...Message %+v :",s.pid, env )
+		//s.logger.Printf("Server %v: BroadCasting...Message %+v :",s.pid, env )
 		dest = s.Peers()
 	} else if env.Pid == -2{
-		log.Printf("Server %v: MultiCasting...%+v",s.pid , env)
+		//s.logger.Printf("Server %v: MultiCasting...%+v",s.pid , env)
 		dest = env.PeerList
-		log.Printf("Server %v: Peer List %v",s.pid,dest)
+		//s.logger.Printf("Server %v: Peer List %v",s.pid,dest)
 	} else { 
-		log.Printf("Server %v: Peer %v sending to Peer %v Message %+v", s.pid, s.pid ,env.Pid, env)
+		//s.logger.Printf("Server %v: Peer %v sending to Peer %v Message %+v", s.pid, s.pid ,env.Pid, env)
 		dest = append( dest, env.Pid)
 	}
 	env.Pid = s.pid
 	env.MsgId = s.getMsgId()
 	env.PeerList = nil
-	//log.Printf("Server %v: Message Being send  :",s.pid , env )
-	log.Printf("Peer %v",dest)
+	//s.logger.Printf("Server %v: Message Being send  :",s.pid , env )
+	//s.logger.Printf("Peer %v",dest)
 	for _, pid := range dest {
 		msg, err := s.S_encodingFacility.Encode(env)
 		if err != nil {
-			log.Println(err)
+			s.logger.Println(err)
 			continue
 		}
 		var socket *zmq.Socket 
-		if (env.MsgType == CTRL) {
+		if (env.MsgType == CTRL || env.MsgType == SHUTDOWN) {
 			socket = s.pCatalog.GetCtrlSocket(pid)
+			//log.Printf("Server %v : Socket ", )
 		} else if (env.MsgType == MSG){
 			socket = s.pCatalog.GetMsgSocket(pid)
 		}
 		if socket == nil {
-			//log.Printf("Server %v: Socket in not instantiated for pid = %v\n", pid)
+			//s.logger.Printf("Server %v: Socket in not instantiated for pid = %v\n", pid)
 			continue
 		}
 		//os.Stdout.Write(msg)
-		//log.Printf("Server %v: Send On socket %v :",s.pid , socket )
+		//s.logger.Printf("Server %v: Send On socket %v :",s.pid , socket )
 		socket.SendBytes(msg, zmq.DONTWAIT)
 	}
 }
@@ -379,10 +395,10 @@ func (s *server) startClientInBox() {
 	for {
 		select {
 		case env := <-s.recieve:
-			log.Printf("Server %v: Forwarding to client %+v ",s.pid, env)
+			//s.logger.Printf("Server %v: Forwarding to client %+v ",s.pid, env)
 			s.in <- env
 		case  <- s.closeClientInbox:
-			//log.Println("Server %v: Client Inbox closed",s.pid)
+			//s.logger.Println("Server %v: Client Inbox closed",s.pid)
 			return
 		}
 	}
@@ -394,10 +410,10 @@ func (s *server) startClientOutBox() {
 	for {
 		select {
 		case env := <-s.out:
-			//log.Printf("Server %v: Recived on Client Outbox =>  +%v \n", s.pid, env)
+			//s.logger.Printf("Server %v: Recived on Client Outbox =>  +%v \n", s.pid, env)
 			s.SendMessage(env)
 		case <- s.closeClientOutbox:
-			//log.Printf("Server %v: Client outbox is closed ", s.pid)
+			//s.logger.Printf("Server %v: Client outbox is closed ", s.pid)
 			return
 		}
 	}
