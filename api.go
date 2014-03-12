@@ -1,14 +1,13 @@
 package cluster
 
-import "log"
-// Cluster Provide following Interface
 
+// Cluster Provide following Interface
 const (
 	BROADCAST = -1
 	MULTICAST = -2
 	CTRL = iota
 	MSG  = iota
-	SHUTDOWN = iota
+	SHUTDOWN_CLUSTER = iota
 )
 
 type Message struct {
@@ -16,6 +15,13 @@ type Message struct {
 	Msg interface{}
 }
 
+const (
+	INFO = iota
+	WARNING = iota
+	FINE = iota
+	FINEST = iota
+	NOLOG = -1
+)
 
 
 
@@ -53,8 +59,6 @@ type Server interface {
 
 	// the channel to receive messages from other peers.
 	Inbox() chan *Envelope
-	
-	SetLogger(*log.Logger)
 	
 	Shutdown() bool
 }

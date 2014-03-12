@@ -2,20 +2,21 @@ package cluster
 
 import "testing"
 
-import "log"
+//import "log"
 import "time"
-import "fmt"
+//import "fmt"
 
 const (
 	NOFSERVER  = 4
-	NOFMESSAGE = 10
+	NOFMESSAGE = 100000
+	LOG_LEVEL = NOLOG
 )
 
 func makeDummyServer(num int) ([]*server, error) {
 	s := make([]*server, num)
 	var err error
 	for i := 0; i < num; i++ {
-		s[i], err = New(i, "Config.json")
+		s[i], err = New(i, "Config.json",nil,LOG_LEVEL)
 		if err != nil {
 			return nil, err
 		}
@@ -49,33 +50,32 @@ func TestClusterMessageCount(t *testing.T) {
 
 Loop :
 	for {
-		log.Println("Started Receive======================================================>")
+		//log.Println("Started Receive===============================>")
 		select {
-			
-			case val := <-s[1].Inbox():
-				fmt.Println("case 1 ", val)
+			case _ = <-s[0].Inbox():
+				//fmt.Println("case 1 ", val)
+				count[0] += 1
+			case _ = <-s[1].Inbox():
+				//fmt.Println("case 1 ", val)
 				count[1] += 1
-			case val := <-s[1].Inbox():
-				fmt.Println("case 1 ", val)
-				count[1] += 1
-			case  val := <-s[2].Inbox():
-				fmt.Println("case 2 ", val)
+			case  _ = <-s[2].Inbox():
+				//fmt.Println("case 2 ", val)
 				count[2] += 1
-			case  val := <-s[3].Inbox():
-				fmt.Println("case 3 ", val)
+			case  _ = <-s[3].Inbox():
+				//fmt.Println("case 3 ", val)
 				count[3] += 1
 			case <- time.After(2* time.Second):
 				break Loop
 		}
 	}
-	log.Println("The Test Time out called======================================================>")
+	//log.Println("The Test Time out called===========>")
 	for i := 0 ; i < NOFSERVER ; i++ {
 		s[i].Shutdown()
 	} 
-	fmt.Println("Reached")
+	//fmt.Println("Reached")
 
-	if ( count[1] != NOFMESSAGE|| count[2] != NOFMESSAGE || count[3] != NOFMESSAGE  ) {
-		t.Errorf("Server Instantiation Failed %q", err)
+	if ( count[0] != NOFMESSAGE * (NOFSERVER - 1) || count[1] != NOFMESSAGE * (NOFSERVER - 1) || count[2] != NOFMESSAGE * (NOFSERVER - 1) || count[3] != NOFMESSAGE * (NOFSERVER - 1)  ) {
+		t.Errorf("Server Instanti ation Failed %q", err)
 	}
 }
 

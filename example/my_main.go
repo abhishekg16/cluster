@@ -18,13 +18,13 @@ func main() {
 	//gob.Register(Message{})	
 	gob.Register(VoteRequestToken{})
 	
-	s1,err := cluster.New(0,"../Config.json",nil)
+	s1,err := cluster.New(0,"../Config.json",nil,cluster.NOLOG)
 	if err != nil {
                fmt.Println("cound not initialize server")
                return
     }
     
-    s2, err := cluster.New(1,"../Config.json",nil)
+    s2, err := cluster.New(1,"../Config.json",nil,cluster.NOLOG )
     if err != nil {
                fmt.Println("cound not initialize server")
                return
