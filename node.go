@@ -82,7 +82,7 @@ func (s *server) Peers() []int {
 
 // This method parse the json file returns a map from peer id to socket address
 func (s * server) parse(ownId int, path string) (map[int]([]string), error) {
-	if (LOG >= INFO) {
+	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v :Parsing The Configuration File\n",ownId)
 	}
 	addr := make(map[int]([]string))
@@ -103,7 +103,7 @@ func (s * server) parse(ownId int, path string) (map[int]([]string), error) {
 			}
 			return addr, nil
 		} else if err != nil {
-				if (LOG >= FINE) {
+				if (LOG >= INFO) {
 					s.logger.Fatalf("Server %v : Decoding Failed!!! \n",ownId, err)
 				}
 			return nil, err
@@ -169,25 +169,28 @@ func (s *server) connectToAllPeers() (bool, error){
 }
 
 func (s *server) Shutdown() bool {
-	if (LOG >= INFO) {
+	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v : Shutdown is called \n",s.pid)
 	}
 	env := Envelope{Pid: s.pid, MsgType : SHUTDOWN_CLUSTER, PeerList: nil , Msg : Message{}}
 	s.SendMessage(&env)
 	//s.shutdown
-	if (LOG >= INFO) {
+	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v : Waiting for Inbox to closed \n",s.pid)
 	}
 	
 	<-s.closeServerInbox
 	
 	s.closeServerOutbox<-true
+	if (LOG >= INFO) {
+		s.logger.Printf("Server %v : Shutdown \n",s.pid)
+	}
 	return true
 }
 
 // This method iniitlaizes the server and stablish the connection with other instances.
 func (s *server) initialize() error {
-	if (LOG >= INFO) {
+	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v :Initializing Server\n",s.pid)
 	}
 	s.msgId = 0
@@ -283,7 +286,7 @@ func (s *server) serverInbox() {
 	         	switch soc := socket.Socket; soc {
 	            	case s.in_ctrl_socket : 
 		                env, err := s.in_ctrl_socket.RecvBytes(0)
-		                if (LOG == INFO) {
+		                if (LOG >= HIGH) {
 							s.logger.Printf("Server %v: Recieved In Control Socket \n", s.pid)
 						}
 						if err != nil {
@@ -303,11 +306,11 @@ func (s *server) serverInbox() {
 								}
 								continue
 							}
-							if (LOG == FINE) {
+							if (LOG >= FINE) {
 								s.logger.Printf("Server %v: Recieved Message : %+v \n", s.pid,msg)
 							}	
 							if msg.MsgType == SHUTDOWN_CLUSTER {
-								if (LOG == INFO) {
+								if (LOG >= HIGH) {
 									s.logger.Printf("Sever %v : InboxClosed \n",s.pid)
 								}
 								s.closeServerInbox<-true
@@ -318,7 +321,7 @@ func (s *server) serverInbox() {
 							if len(s.in) < 1000 { 
 								s.in <- msg
 							} else  {
-								if (LOG == FINE) {
+								if (LOG >= INFO) {
 									s.logger.Printf("Server %v: Input Chennel is full server dropping message : %+v \n", s.pid)
 								}	
 							}
@@ -347,12 +350,12 @@ func (s *server) serverOutbox() {
 	for {
 		select {
 		case env := <-s.out:
-			if (LOG == INFO) {
+			if (LOG == HIGH) {
 				s.logger.Printf("Server %v: Recived Outbox.. Message:  +%v \n", s.pid, env)
 			}
 			s.SendMessage(env)
 		case <- s.closeServerOutbox:
-			if (LOG == INFO) {
+			if (LOG == HIGH) {
 				s.logger.Printf("Server %v: Outbox is closed ", s.pid)
 			}
 			return
@@ -364,22 +367,22 @@ func (s *server) serverOutbox() {
 // At present the sending sevice only support the point to point and broadcast services
 // Depending On the type of message the Message is send either on the control or message socket
 func (s *server) SendMessage(env *Envelope) {
-	if (LOG == INFO) {
+	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v: Sending Message", s.pid)
 	}
 	dest := make([]int, 0)
 	if env.Pid == -1 {
-		if (LOG == INFO) {
+		if (LOG >= HIGH) {
 			s.logger.Printf("Server %v: BroadCasting...Message %+v :",s.pid, env )
 		}
 		dest = s.Peers()
 	} else if env.Pid == -2{
 		dest = env.PeerList
-		if (LOG == INFO) {
+		if (LOG >= HIGH) {
 			s.logger.Printf("Server %v: Multicasting..PeerList : %+v Message : %+v",s.pid,dest,env)
 		}
 	} else {
-		if (LOG == INFO) { 
+		if (LOG >= HIGH) { 
 			s.logger.Printf("Server %v: Peer(%v) to Peer(%v)...Message %+v", s.pid, s.pid ,env.Pid, env)
 		}
 		dest = append( dest, env.Pid)
@@ -419,7 +422,7 @@ func (s *server) SendMessage(env *Envelope) {
 			socket = s.pCatalog.GetMsgSocket(pid)			
 		}
 		if socket == nil {
-			if (LOG == INFO) {
+			if (LOG == HIGH) {
 				s.logger.Printf("Server %v:No Socket avail for pid = %v\n...Skipping Message", pid)
 			}
 			continue

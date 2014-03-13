@@ -22,6 +22,7 @@ const (
 
 const (
 	INFO = iota
+	HIGH = iota
 	WARNING = iota
 	FINE = iota
 	FINEST = iota
@@ -56,7 +57,7 @@ func AllocateNewCatalog(l * log.Logger , logLevel int , serverId int) *PeerCatal
 	catalog.logger = l
 	catalog.serverId = serverId
 	LOG = logLevel
-	if ( LOG >= INFO  ) {
+	if ( LOG >= HIGH ) {
 		l.Printf("PeerCalalog :%v, Allocated new peer catalog for server\n", serverId)
 	}
 	return &catalog
@@ -77,7 +78,7 @@ func (p *PeerCatalog) SetPeers(allPeers *map[int]([]string)) {
 		newPeer := peer{tpid, taddr[0],taddr[1], nil,nil}
 		p.mapOfPeers[tpid] = newPeer
 	}
-	if ( LOG >= INFO  ) {
+	if ( LOG >= HIGH  ) {
 		p.logger.Printf("PeerCalalog %v : All peers are set in peer catalog\n",p.serverId)
 		//p.PrintCatalog()
 	}
@@ -173,7 +174,7 @@ func (p *PeerCatalog) Connect(pid int) (bool, error) {
 	}
 	err = socket.Connect(PROTOCOL + addr)
 	if err != nil {
-		if  p.logger != nil {
+		if ( LOG >= INFO  ) {
 			p.logger.Printf("PeerCalalog %v : Error %v , Argument Sent were : %v ", p.serverId ,err, PROTOCOL + addr)
 		}
 		return false, err
@@ -185,7 +186,7 @@ func (p *PeerCatalog) Connect(pid int) (bool, error) {
 	}
 	
 	p.mapOfPeers[pid] = *peer
-	if ( LOG >= INFO  ) {
+	if ( LOG >= HIGH  ) {
 		p.logger.Printf("Connecting to %v : %v", pid, addr)
 	}
 	// Connect to ctrl Socket 
@@ -208,7 +209,7 @@ func (p *PeerCatalog) Bind(pid int) ( bool , error ){
 		return false , fmt.Errorf("Pid does not exist\n")
 	}
 	peer.msgSoc = socket
-	if ( LOG >= INFO  ) {
+	if ( LOG >= HIGH  ) {
 		p.logger.Printf("Binding Server %d MSG POST To Listen on %v", pid, addr)
 	}
 	
@@ -222,7 +223,7 @@ func (p *PeerCatalog) Bind(pid int) ( bool , error ){
 	
 	//Fix this later
 	p.mapOfPeers[pid] = *peer
-	if ( LOG >= INFO  ) {
+	if ( LOG >= HIGH  ) {
 		p.logger.Printf("Binding Server %v CTRL POrt To Listen on %v", pid, addr)
 	}
 	return true , nil

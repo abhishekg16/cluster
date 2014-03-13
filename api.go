@@ -17,6 +17,7 @@ type Message struct {
 
 const (
 	INFO = iota
+	HIGH = iota
 	WARNING = iota
 	FINE = iota
 	FINEST = iota
