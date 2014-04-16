@@ -55,6 +55,10 @@ type server struct {
 	logger *log.Logger
 	
 	isShutdown bool // isShutdown Requested 
+	
+	partitionMap map[int]int // store the information {PeerId} -> PartitionNo
+	
+	isPartitioned bool
 }
 
 // getMsgId method return the unique global message id
@@ -130,6 +134,17 @@ func (s *server) Outbox() chan *Envelope {
 func (s *server) Inbox() chan *Envelope {
 	return s.in
 }
+
+func (s * server)Partition( p  map[int]int) {
+	s.isPartitioned = true 
+	s.partitionMap = p
+}
+
+func (s * server)RemovePartitions() {
+	s.isPartitioned = false
+	s.partitionMap = nil
+} 
+
 
 // This method accept a pid and return the true, socket address associated with that pid
 // In case the pid not present in peer list it will return the false, nil
@@ -215,7 +230,7 @@ func (s *server) initialize() error {
 	s.in_msg_socket = s.pCatalog.GetMsgSocket(s.pid)
 	s.in_ctrl_socket = s.pCatalog.GetCtrlSocket(s.pid)
 	
-	
+	s.isPartitioned = false
 	s.S_encodingFacility, _ = GetEncoder() 
 	/*
 	if ok != true {
@@ -397,8 +412,27 @@ func (s *server) SendMessage(env *Envelope) {
 	if (LOG == FINE ) {
 		s.logger.Printf("Server %v: Message being send  %+v:",s.pid , env )
 	}
+	var localPartition int
+	var ok bool 
+	if (s.isPartitioned == true ) {
+		localPartition, ok = s.partitionMap[s.pid]
+		if ok == false {
+			if (LOG == INFO ) {
+				s.logger.Printf("Server %v: Server cound not find local partition  %+v:", s.pid,s.pid)
+			}
+		}
+	}
 	
 	for _, pid := range dest {
+		if s.isPartitioned == true {
+			destPartition, _ := s.partitionMap[pid]
+			if localPartition != destPartition {
+				if (LOG == INFO ) {
+					s.logger.Printf("Server %v: Destination : %v in the different partition ",s.pid,pid)
+				}	
+				continue	
+			}
+		}
 		if (LOG == FINE ) {
 			s.logger.Printf("Server %v: Sending to  %+v:", s.pid, pid)
 		}

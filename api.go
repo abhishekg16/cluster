@@ -61,5 +61,13 @@ type Server interface {
 	// the channel to receive messages from other peers.
 	Inbox() chan *Envelope
 	
+	// Shutdown the server  
 	Shutdown() bool
+	
+	// For Debugguing
+	Partition(map[int]int) 
+	
+	// starts assuming all the cluster as single unit
+	RemovePartitions() 
+	
 }
