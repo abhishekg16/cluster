@@ -1,4 +1,10 @@
 package cluster
+/*
+cluster package provide the communication facility with different cluster instances.
+This communication layer provides the best effot to deliver message across the cluster
+but does not provide any cluster. Message can be lost , reordered so the application 
+using this communication channel must handle such senarios 
+*/
 
 import (
 	//"fmt"
@@ -14,12 +20,14 @@ import (
 	//"bufio"
 )
 
+
 const (
 	PROTOCOL = "tcp://"
 	INPUT_BUFFER_LENGTH  = 1000 // length of the input buffer which keeps the incoming messages
-	OUTPUT_BUFFER_LENGTH = 1000
+	OUTPUT_BUFFER_LENGTH = 1000 // length of the input buffer which keeps the out going messages
 )
 
+// LOG instance define the Logging level
 var LOG int
 
 // TODO : Make server singleton
@@ -44,21 +52,20 @@ type server struct {
 
 	msgId int64 // Unique massage id
 	
+	closeServerOutbox chan bool  // channel used to get the response of the shutdown signal
 	
+	closeServerInbox chan bool // channel used to send the shutdown signal to raft instance
 	
-	closeServerOutbox chan bool
+	S_encodingFacility *EncodingFacility  // reference to the encoding facility
 	
-	closeServerInbox chan bool
-	
-	S_encodingFacility *EncodingFacility
-	
-	logger *log.Logger
+	logger *log.Logger // logger point to the logging object
 	
 	isShutdown bool // isShutdown Requested 
 	
+	// used for debugging
 	partitionMap map[int]int // store the information {PeerId} -> PartitionNo
 	
-	isPartitioned bool
+	isPartitioned bool // is cluster is partitioned
 }
 
 // getMsgId method return the unique global message id
@@ -75,11 +82,14 @@ func (s *server) getMsgId() int64 {
 
 
 
-//==== Function related to server interface  
+//==== Function related to server interface
+
+// Pid return the Pid of server  
 func (s *server) Pid() int {
 	return s.pid
 }
 
+// Peers returns the peer list of the this server instance
 func (s *server) Peers() []int {
 	return s.pCatalog.GetPeerList(s.pid)
 }
@@ -183,6 +193,7 @@ func (s *server) connectToAllPeers() (bool, error){
 	return true, nil
 }
 
+// Shutdown close all the connection and free all the associated objects
 func (s *server) Shutdown() bool {
 	if (LOG >= HIGH) {
 		s.logger.Printf("Server %v : Shutdown is called \n",s.pid)
